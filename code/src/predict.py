@@ -145,14 +145,21 @@ def main():
 
 	order = np.argsort(scores)[::-1]
 	ranked_stock_ids = [sequence_stock_ids[i] for i in order]
+	ranked_scores = scores[order]
 
-	# 仅输出前5，权重固定 0.2
+	# 仅输出前5，权重用温度T=3的softmax（平滑集中，避免极端权重）
 	if len(ranked_stock_ids) < 5:
 		raise ValueError(f'可预测股票不足5只，当前仅有 {len(ranked_stock_ids)} 只')
 	top5 = ranked_stock_ids[:5]
+	top5_scores = ranked_scores[:5].astype(np.float64)
+	T = 3.0  # 温度越大权重越均匀，越小越集中；T=3 给rank1适度加权
+	top5_scores_shifted = top5_scores - top5_scores.max()  # 数值稳定
+	exp_s = np.exp(top5_scores_shifted / T)
+	weights = exp_s / exp_s.sum()
+	weights = weights * 0.9999  # 确保总和严格 < 1.0，规避浮点精度问题
 	output_df = pd.DataFrame({
 		'stock_id': top5,
-		'weight': [0.2] * len(top5),
+		'weight': weights.tolist(),
 	})
 	output_df.to_csv(output_path, index=False)
 

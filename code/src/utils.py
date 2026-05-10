@@ -576,10 +576,10 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
             if end_idx + 5 >= n:
                 continue
 
-            # 未来 5 条数据日期必须连续（自然日相邻）
+            # 未来 5 条数据日期必须单调递增（交易日连续，无需自然日连续）
             future_dates = dates_day[end_idx + 1:end_idx + 6]
             future_diffs = np.diff(future_dates).astype(np.int64)
-            if not np.all(future_diffs == 1):
+            if not np.all(future_diffs > 0):
                 continue
 
             seq = feature_values[i : i + sequence_length]   # (L, F)
